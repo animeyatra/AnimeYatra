@@ -1,0 +1,6 @@
+{
+  "name": "AnimeYatra - Anime Streaming & Discovery Portal",
+  "description": "Watch Hindi, English & Multi-Audio Dubbed Anime, Episodes, Voice Cast Details, Reviews, and Schedules.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
