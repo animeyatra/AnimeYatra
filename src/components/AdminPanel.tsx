@@ -1,3 +1,4 @@
+import { supabase } from '../lib/supabase';
 import React, { useState } from 'react';
 import { 
   ShieldCheck, 
@@ -273,7 +274,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   // Handler for publishing video in dedicated Video Upload tab
-  const handlePublishUploadedVideo = (e: React.FormEvent) => {
+const handlePublishUploadedVideo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!videoUploadPreviewUrl && !videoUploadFile) {
       alert('Please select or drag a video file first!');
@@ -289,11 +290,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setIsPublishingVideo(true);
     setVideoUploadProgress(20);
 
-    setTimeout(() => {
+  setTimeout(async () => {
       setVideoUploadProgress(65);
     }, 600);
 
-    setTimeout(() => {
+  setTimeout(async () => {
       setVideoUploadProgress(100);
 
       const streamUrl = videoUploadPreviewUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
@@ -328,6 +329,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           }
         ]
       };
+// 1. Calculate the updated seasons array
+const updatedSeasons = targetAnime.seasons.map((season) => {
+  if (season.seasonNumber !== selectedSeasonNumber) return season;
+  const updatedEpisodes = [...season.episodes, newEpisode];
+  return {
+    ...season,
+    episodesCount: updatedEpisodes.length,
+    episodes: updatedEpisodes,
+  };
+});
+
+// 2. SAVE TO SUPABASE (This syncs it to all devices globally!)
+const { error } = await supabase
+  .from('anime')
+  .update({ seasons: updatedSeasons })
+  .eq('id', targetAnime.id);
+
+if (error) {
+  console.error('Error syncing with Supabase:', error.message);
+  alert('Failed to sync upload to cloud database.');
+  return;
+}
+
+// 3. Update local state and localStorage so your device updates instantly too
+setAnimeList((prev) =>
+  prev.map((anime) =>
+    anime.id === targetAnime.id ? { ...anime, seasons: updatedSeasons } : anime
+  )
+);
+
+// Optional: if you still want to cache it locally
+const updatedList = animeList.map((anime) =>
+  anime.id === targetAnime.id ? { ...anime, seasons: updatedSeasons } : anime
+);
+localStorage.setItem('animeyatra_anime_data', JSON.stringify(updatedList));
+
+alert('Episode uploaded and synced globally to all phones!');
 
       setAnimeList((prev) =>
         prev.map((anime) => {
