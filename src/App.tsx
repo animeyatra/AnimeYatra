@@ -33,7 +33,7 @@ export default function App() {
     }
   });
 
-  // Fetch from Supabase on mount
+  // Fetch from Supabase on mount & set up Realtime listener for cross-device updates
   useEffect(() => {
     const fetchAnimeFromSupabase = async () => {
       try {
@@ -72,7 +72,7 @@ export default function App() {
             reviews: item.reviews || [],
             externalLinks: item.external_links || {},
             seasons: item.seasons || [],
-            addedBy: item.added_by || 'Admin', // <--- Added addedBy from Supabase!
+            addedBy: item.added_by || 'Admin',
             addedAt: item.created_at || item.added_at
           }));
 
@@ -83,7 +83,30 @@ export default function App() {
       }
     };
 
+    // 1. Initial fetch
     fetchAnimeFromSupabase();
+
+    // 2. Realtime subscription to instantly catch inserts, updates, and deletes across phones
+    const channel = supabase
+      .channel('public:anime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'anime',
+        },
+        (payload) => {
+          console.log('Realtime change detected from another device:', payload);
+          fetchAnimeFromSupabase();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
